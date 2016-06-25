@@ -1,0 +1,38 @@
+---
+layout: post
+title:  "Thoughts on Caching"
+date:   2016-06-25 12:30:00 +0200
+categories: notes
+---
+
+How we can cache search results?
+
+Some strategies that come to mind are:
+1. Execute the top N number of searches continually caching the results each time. Searches that have not been cached need to be satisfied on demand.
+- Move the search mechanism itself closer to the user. The number of entities that we want to be searchable is not as large as to prohibit it's duplication. Move the mechanism that does the search, along with it's data.
+
+## Point 2
+
+Lets explore point 2. What would moving the search mechanism look like? Before we can answer that question we need to define the search mechanism itself.
+
+A user begins a search by specifying a set of parameters. These are inputted through some type of user interface. From the interface the parameters get passed to search server, which in turn returns search results back to the user interface.
+
+The responsiveness of the search through the interface is the key metric that we are trying to improve through this exercise. If the interface and the search results are delivered through the same mechanism, their performance characteristics are bound to each other. 
+
+The user interface can be delivered through a CDN due to the fact that the staleness of it's cache is not of concern. The search results for a set of parameters cannot be returned via a CDN because staleness is a problem if we want our results to be as real time as possible.
+
+Real time results are not the only problem when using a CDN to cache the search results, or any type of dumb cache like it. More obscure parameter and result sets will not benefit from caching due to their infrequency of use, their cache will most likely expire before being called.
+
+Enter the search mechanism, it's requirements are that it take a set of parameters, and return search results. The search results can be returned as multiple representations, some being machine friendly, some being human friendly.
+
+In other words, the search mechanism is a micro server that can take a set of parameters and return JSON, or HTML markup. The markup could be loaded into the center of a user interface using a simple AJAX call. The user interface will then be responsible for styling.
+
+To put it clearly, the search mechanism is defined as a service that gets sent a set of parameters and returns a representation of the results based on an internal store of entities.
+
+While the searching itself is not a simple task, this has been solved in the context of this experiment. By making use of an already built search technology and then building an API on top of that we can reason about the mechanism simply and in isolation.
+
+Entities within the search mechanisms store, due to the fact that our goal is to search a relatively low number of entities, can be viewed as ephemeral and allow us to treat the search mechanism as something that can be thrown away at will and replaced, given a short time, the entities within the search mechanism will be added again.
+
+From here on the search mechanism will be referred to as the search service. 
+
+## Peering into the Search Service
