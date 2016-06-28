@@ -25,7 +25,7 @@ Real time results are not the only problem when using a CDN to cache the search 
 
 Enter the search mechanism, it's requirements are that it take a set of parameters, and return search results. The search results can be returned as multiple representations, some being machine friendly, some being human friendly.
 
-In other words, the search mechanism is a micro server that can take a set of parameters and return JSON, or HTML markup. The markup could be loaded into the center of a user interface using a simple AJAX call. The user interface will then be responsible for styling.
+In other words, the search mechanism is a micro service that can take a set of parameters and return JSON, or HTML. The HTML could be loaded into the center of a user interface using a simple AJAX call. The user interface will then be responsible for styling.
 
 To put it clearly, the search mechanism is defined as a service that gets sent a set of parameters and returns a representation of the results based on an internal store of entities.
 
@@ -36,3 +36,35 @@ Entities within the search mechanisms store, due to the fact that our goal is to
 From here on the search mechanism will be referred to as the search service. 
 
 ## Peering into the Search Service
+
+What components make up the Search Service? 
+- Search server, like Apache SOLR
+- API acting as a wrapper to the search server
+- Web Server, serving the API
+- Index updating process
+
+Each instance of the search service will have it's own instance of the search server. 
+
+### Indexing the Search Server
+
+**Experiment**: Add a message for each entity in the main datastore that should be present in the search index, to a queue. Anytime any part of the data that makes up the entity in the source database changes put a message on the queue. Include the all of the data for the entity in the message.
+
+Consume messages for these queues using the index updating process. The entity in the index will be replaced by the entity in the message from the queue.
+
+A different set of entities could exist in each index within each Search Server. What kind of problems could this cause? The same search done twice, in short succession, could return a different set of entities. When going back and forward in a set of pages of entities, the contents of the pages will change.
+
+Are there ways to overcome this issue by leveraging browser technologies?
+
+The client (the browser) will need to implement **Monotonic Read Consistency**. When the client has read the value of an entity, an older value will never be displayed.
+
+How can this be implemented though? How can this model solve the problem of search results changing unexpectedly?
+
+Surely the set of entities for a search result will need to be serialized and stored in a place the client can access easily and efficiently. This does seem like it would involve too much overhead for mobile clients. 
+
+Moving this kind of storage to the API layer could solve the problem. But it would create other problems and may just be moving the same problems to a different place.
+
+Inconsistency within the search results may not even be a problem. There is probably a low chance that this will actually cause a problem. In fact no matter what type of consistency is implemented, the problem will always exist. Entities will always be removed. 
+
+Under low load conditions an update to an entity will arrive at all instances of the search server within a very short amount of time.
+
+Letting the browser handler caching of search results may be a simple solution, cache a page for 30 seconds, or a minute, that way if the user returns to that page quickly, it will not have changed. Problem is the caching is not a guarantee in the browser. 
